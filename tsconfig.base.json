@@ -1,20 +1,27 @@
 {
   "compilerOptions": {
-    "composite": true,
-    "declarationMap": true,
-    "emitDeclarationOnly": true,
+    "target": "ES2021",
     "importHelpers": true,
-    "isolatedModules": true,
-    "lib": ["es2022"],
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "noEmitOnError": true,
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitOverride": true,
-    "noImplicitReturns": true,
-    "noUnusedLocals": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "outDir": "build",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "skipLibCheck": true,
-    "strict": true,
-    "target": "es2022"
+    "types": ["node"],
+    "lib": ["ES2022", "DOM"],
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "rootDir": ".",
+    "allowJs": true,
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "skipDefaultLibCheck": true,
+    "strictNullChecks": false,
+    "declaration": true,
+    "paths": {
+      "@aiofc/pino-logger": ["packages/pino-logger/src/index.ts"],
+      "@aiofc/zod-env": ["packages/zod-env/src/index.ts"]
+    }
   }
 }

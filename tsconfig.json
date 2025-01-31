@@ -5,6 +5,12 @@
   "references": [
     {
       "path": "./apps/platform"
+    },
+    {
+      "path": "./packages/pino-logger"
+    },
+    {
+      "path": "./packages/zod-env"
     }
   ]
 }
