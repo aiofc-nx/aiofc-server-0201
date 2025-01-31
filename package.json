@@ -1,18 +1,75 @@
 {
-  "name": "@aiofc-server-v20-0201/source",
+  "name": "@aiofc-server/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "description": "2025-0-01",
+  "packageManager": "pnpm@8.15.0",
+  "volta": {
+    "node": "20.18.1"
+  },
+  "scripts": {
+    "prepare": "husky install",
+    "doc": "typedoc --options typedoc.json && vitepress dev docs",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "docs:typedoc": "typedoc --options typedoc.json",
+    "docs:typedoc:watch": "typedoc --watch",
+    "db:generate": "drizzle-kit generate --config drizzle/src/lib/aiofc.config.ts",
+    "db:migrate": "cross-env NODE_OPTIONS='--import tsx' DB_MIGRATING=true node drizzle/src/command/aiofc.migrate.ts"
+  },
+  "config": {
+    "commitizen": {
+      "path": "node_modules/cz-customizable"
+    }
+  },
   "private": true,
-  "dependencies": {},
   "devDependencies": {
+    "@nestjs/schematics": "^10.0.1",
+    "@nestjs/testing": "^10.0.2",
+    "@nx/eslint-plugin": "20.4.0",
+    "@nx/jest": "20.4.0",
     "@nx/js": "20.4.0",
+    "@nx/nest": "20.4.0",
+    "@nx/node": "20.4.0",
+    "@nx/web": "20.4.0",
+    "@nx/webpack": "20.4.0",
     "@swc-node/register": "~1.9.1",
     "@swc/core": "~1.5.7",
     "@swc/helpers": "~0.5.11",
+    "@swc/jest": "~0.2.36",
+    "@types/jest": "^29.5.12",
+    "@types/node": "~18.16.9",
+    "commitizen": "^4.3.1",
+    "cross-env": "^7.0.3",
+    "cz-customizable": "^7.4.0",
+    "drizzle-kit": "^0.30.1",
+    "eslint": "^9.19.0",
+    "eslint-config-prettier": "^9.0.0",
+    "globals": "^15.14.0",
+    "husky": "^8.0.0",
+    "jest": "^29.7.0",
+    "jest-environment-node": "^29.7.0",
     "nx": "20.4.0",
     "prettier": "^2.6.2",
+    "ts-jest": "^29.1.0",
+    "ts-node": "10.9.1",
     "tslib": "^2.3.0",
-    "typescript": "~5.7.2"
+    "tsx": "^4.19.2",
+    "typedoc": "^0.27.6",
+    "typedoc-plugin-markdown": "^4.4.1",
+    "typedoc-vitepress-theme": "^1.1.2",
+    "typescript": "~5.7.2",
+    "typescript-eslint": "^8.21.0",
+    "verdaccio": "^5.0.4",
+    "vitepress": "^1.6.3",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "@nestjs/common": "^10.0.2",
+    "@nestjs/core": "^10.0.2",
+    "@nestjs/platform-express": "^10.0.2",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^7.8.0"
   }
 }
