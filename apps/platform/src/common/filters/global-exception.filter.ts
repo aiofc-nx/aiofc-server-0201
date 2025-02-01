@@ -18,9 +18,7 @@ import { Logger } from '@aiofc/pino-logger';
 import { PostgresError } from 'postgres';
 import { FastifyReply } from 'fastify';
 import { BaseExceptionFilter, HttpAdapterHost } from '@nestjs/core';
-import pino from 'pino';
-import { PinoLogger } from '@aiofc/pino-logger';
-import { ClsService } from 'nestjs-cls';
+// import { ClsService } from 'nestjs-cls';
 
 // 扩展 FastifyRequest 类型
 declare module 'fastify' {
@@ -33,59 +31,15 @@ type ErrorKeys = {
   [K in keyof I18nTranslations]: K;
 }[keyof I18nTranslations];
 
-/**
- * 全局异常过滤器
- *
- * 负责处理应用程序中所有未捕获的异常,将其转换为标准的错误响应格式
- *
- * 主要功能:
- * - 处理各种类型的异常并转换为统一的错误响应格式
- * - 支持国际化错误消息
- * - 在开发环境下提供详细的错误信息
- * - 记录错误日志
- *
- * 支持的异常类型:
- * - UnprocessableEntityException: 处理请求实体验证错误
- * - ValidationException: 处理自定义验证异常
- * - HttpException: 处理标准的HTTP异常
- * - PostgresError: 处理Postgres数据库错误
- * - Error: 处理其他通用错误
- */
 @Catch()
 export class GlobalExceptionFilter extends BaseExceptionFilter {
-  private debug = false;
-  private readonly logger: Logger;
-
   constructor(
     protected readonly httpAdapterHost: HttpAdapterHost,
     private readonly i18n: I18nService<I18nTranslations>,
-    private readonly cls: ClsService,
+    // private readonly cls: ClsService,
+    private readonly logger: Logger
   ) {
     super(httpAdapterHost.httpAdapter);
-    this.logger = new Logger(
-      new PinoLogger(
-        {
-          pinoHttp: pino({ name: 'GlobalExceptionFilter' }),
-          sensitiveHeaders: [
-            'authorization',
-            'cookie',
-            'password',
-            'x-api-key',
-          ],
-          sensitiveFields: ['password', 'token', 'secret', 'key'],
-          logRequestBody: true,
-          logResponseBody: false,
-        },
-        this.cls,
-      ),
-      {
-        renameContext: 'context',
-        sensitiveHeaders: ['authorization', 'cookie', 'password', 'x-api-key'],
-        sensitiveFields: ['password', 'token', 'secret', 'key'],
-        logRequestBody: true,
-        logResponseBody: false,
-      },
-    );
   }
 
   /**
@@ -97,8 +51,6 @@ export class GlobalExceptionFilter extends BaseExceptionFilter {
   catch(exception: any, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<FastifyReply>();
-
-    this.debug = false;
 
     let error: ErrorDto;
 
@@ -120,17 +72,11 @@ export class GlobalExceptionFilter extends BaseExceptionFilter {
           `errors.${error.message}` as ErrorKeys,
           {
             defaultValue: error.message,
-          },
+          }
         );
       } catch (e) {
         this.logger.error('Translation failed:', e);
       }
-    }
-
-    if (this.debug) {
-      error.stack = exception.stack;
-      error.trace = exception;
-      this.logger.debug(error);
     }
 
     const { httpAdapter } = this.httpAdapterHost;
@@ -149,7 +95,7 @@ export class GlobalExceptionFilter extends BaseExceptionFilter {
    * @returns 标准化的错误响应对象
    */
   private handleUnprocessableEntityException(
-    exception: UnprocessableEntityException,
+    exception: UnprocessableEntityException
   ): ErrorDto {
     const r = exception.getResponse() as { message: ValidationError[] };
     const statusCode = exception.getStatus();
@@ -291,18 +237,18 @@ export class GlobalExceptionFilter extends BaseExceptionFilter {
    * @returns 错误详情数组
    */
   private extractValidationErrorDetails(
-    errors: ValidationError[],
+    errors: ValidationError[]
   ): ErrorDetailDto[] {
     const extractErrors = (
       error: ValidationError,
-      parentProperty = '',
+      parentProperty = ''
     ): ErrorDetailDto[] => {
       const propertyPath = parentProperty
         ? `${parentProperty}.${error.property}`
         : error.property;
 
       const currentErrors: ErrorDetailDto[] = Object.entries(
-        error.constraints || {},
+        error.constraints || {}
       ).map(([code, message]) => ({
         property: propertyPath,
         code,
@@ -311,7 +257,7 @@ export class GlobalExceptionFilter extends BaseExceptionFilter {
 
       const childErrors: ErrorDetailDto[] =
         error.children?.flatMap((childError) =>
-          extractErrors(childError, propertyPath),
+          extractErrors(childError, propertyPath)
         ) || [];
 
       return [...currentErrors, ...childErrors];

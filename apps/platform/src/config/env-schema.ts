@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { Environment } from '../common/enums/environment.enum';
-import { TenantIsolationStrategy } from '../common/enums/tenant.enum';
 
 export const EnvSchema = z.object({
   /**
@@ -39,38 +38,7 @@ export const EnvSchema = z.object({
         max_lifetime: z.number().optional(),
       })
       .optional(),
-    isolationStrategy: z
-      .nativeEnum(TenantIsolationStrategy)
-      .default(TenantIsolationStrategy.SCHEMA),
   }),
-
-  /**
-   * 中间件配置部分
-   */
-  middleware: z.object({
-    excludedPaths: z.array(z.string()).default([]), // 中间件排除路径
-  }),
-
-  /**
-   * 租户配置部分
-   */
-  tenant: z
-    .object({
-      databaseIsolation: z.boolean().default(false),
-      schemaIsolation: z.boolean().default(true),
-      schemaHeader: z.string().default('x-tenant-schema'),
-      databaseHeader: z.string().default('x-tenant-database'),
-    })
-    .refine(
-      (data) => {
-        // 确保databaseIsolation和schemaIsolation是互斥的
-        return data.databaseIsolation !== data.schemaIsolation;
-      },
-      {
-        message: 'databaseIsolation和schemaIsolation必须且只能选择其一',
-        path: ['tenant'],
-      }
-    ),
 });
 
 export type EnvValidatedConfig = z.infer<typeof EnvSchema>;

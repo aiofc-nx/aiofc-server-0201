@@ -17,7 +17,6 @@
     "esModuleInterop": true,
     "sourceMap": true,
     "skipDefaultLibCheck": true,
-    "strictNullChecks": false,
     "declaration": true,
     "paths": {
       "@aiofc/pino-logger": ["packages/pino-logger/src/index.ts"],

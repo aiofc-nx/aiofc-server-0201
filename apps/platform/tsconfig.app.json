@@ -1,9 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "out-tsc/platform",
+    "outDir": "../../dist/out-tsc/platform",
     "types": ["node"],
-    "tsBuildInfoFile": "out-tsc/platform/tsconfig.app.tsbuildinfo",
+    "tsBuildInfoFile": "../../dist/out-tsc/platform/tsconfig.app.tsbuildinfo",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "target": "es2021"

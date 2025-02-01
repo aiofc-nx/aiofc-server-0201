@@ -8,7 +8,6 @@ import { Logger } from '@aiofc/pino-logger';
 import { randomUUID } from 'crypto';
 import { ConfigService } from './config/config.service';
 import { I18nService } from 'nestjs-i18n';
-import { ClsService } from 'nestjs-cls';
 import { I18nTranslations } from './generated/i18n.generated';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
@@ -40,12 +39,11 @@ async function bootstrap() {
     const app = await NestFactory.create<NestFastifyApplication>(
       AppModule,
       new FastifyAdapter({
-        logger: false,
+        logger: false, // 禁用Nest默认的日志
         genReqId: () => randomUUID(),
       }),
       {
         bufferLogs: true, // 缓存启动日志
-        // logger: false, // Add this line to disable default logger
       }
     );
 
@@ -53,11 +51,10 @@ async function bootstrap() {
     // 注册全局异常过滤器
     const httpAdapter = app.get(HttpAdapterHost);
     const i18n = app.get<I18nService<I18nTranslations>>(I18nService);
-    const cls = app.get(ClsService);
-    app.useGlobalFilters(new GlobalExceptionFilter(httpAdapter, i18n, cls));
+    const logger = app.get(Logger);
+    app.useGlobalFilters(new GlobalExceptionFilter(httpAdapter, i18n, logger));
 
     // 使用自定义日志服务
-    const logger = app.get(Logger);
     app.useLogger(logger);
 
     // 启用跨域资源共享

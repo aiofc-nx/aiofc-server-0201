@@ -19,18 +19,3 @@ database:
     connect_timeout: 30
     max_lifetime: 1800 # 30分钟
 
-tenant:
-  isolationStrategy: database
-  databaseIsolation: true
-  schemaIsolation: false
-  schemaHeader: x-tenant-schema
-  databaseHeader: x-tenant-database
-
-middleware:
-  excludedPaths: # 中间件排除路径
-    - /
-    - /api
-    - /health
-    - /docs
-    - /swagger
-    - /tenants

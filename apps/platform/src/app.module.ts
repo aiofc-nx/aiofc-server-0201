@@ -1,13 +1,8 @@
-import { DynamicModule, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { AppController } from './app/app.controller';
 import { AppService } from './app/app.service';
 import { ConfigModule } from './config/config.module';
-import {
-  DetailedLoggingInterceptor,
-  LoggerModule,
-  loggingInitConfig,
-  SimpleLoggingInterceptor,
-} from '@aiofc/pino-logger';
+import { LoggerModule, SimpleLoggingInterceptor } from '@aiofc/pino-logger';
 import { ConfigService } from './config/config.service';
 import {
   AcceptLanguageResolver,
@@ -18,11 +13,16 @@ import {
 } from 'nestjs-i18n';
 import path from 'path';
 import { APP_INTERCEPTOR } from '@nestjs/core/constants';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
 @Module({
   imports: [
     ConfigModule,
-    LoggerModule.forRootAsync(loggingInitConfig) as Promise<DynamicModule>,
+    LoggerModule.forRoot({
+      pinoHttp: {
+        name: 'GlobalExceptionFilter',
+      },
+    }),
     I18nModule.forRootAsync({
       useFactory: () => ({
         fallbackLanguage: 'zh',
@@ -51,12 +51,10 @@ import { APP_INTERCEPTOR } from '@nestjs/core/constants';
     AppService,
     ConfigService,
     {
-      provide: APP_INTERCEPTOR, // nestjs 内置的令牌
-      useClass:
-        process.env.NODE_ENV === 'development'
-          ? DetailedLoggingInterceptor
-          : SimpleLoggingInterceptor,
+      provide: APP_INTERCEPTOR,
+      useClass: SimpleLoggingInterceptor,
     },
+    GlobalExceptionFilter,
   ],
   exports: [AppService],
 })

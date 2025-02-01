@@ -34,22 +34,4 @@ export class ConfigService extends ZodEnv<EnvValidatedConfig> {
   get database() {
     return Object.freeze({ ...this.config.database });
   }
-
-  get middleware() {
-    return Object.freeze({ ...this.config.middleware });
-  }
-
-  get tenant() {
-    return Object.freeze({ ...this.config.tenant });
-  }
-}
-
-export interface Config {
-  // ... other configs
-  tenant: {
-    databaseIsolation: boolean;
-    schemaIsolation: boolean;
-    schemaHeader: string;
-    databaseHeader: string;
-  };
 }

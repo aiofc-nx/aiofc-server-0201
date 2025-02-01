@@ -1,72 +1,162 @@
-import { Global, Module, DynamicModule, Inject } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { IncomingMessage, ServerResponse } from 'node:http';
+import {
+  Global,
+  Module,
+  DynamicModule,
+  NestModule,
+  MiddlewareConsumer,
+  RequestMethod,
+  Inject,
+} from '@nestjs/common';
 import { Provider } from '@nestjs/common/interfaces';
-
-import { ClsModule } from 'nestjs-cls';
+import { pinoHttp } from 'pino-http';
+import { ClsModule, ClsService } from 'nestjs-cls';
 
 import { createProvidersForDecorated } from './inject-pino-logger';
-import { Params, PARAMS_PROVIDER_TOKEN } from './interface/params';
-import { PinoLogger } from './pino-logger';
 import { Logger } from './logger';
+import {
+  LoggerParams,
+  LoggerModuleAsyncParams,
+  PARAMS_PROVIDER_TOKEN,
+} from './interface/params.interface';
+import { PinoLogger } from './pino-logger';
 
 /**
  * As NestJS@11 still supports express@4 `*`-style routing by itself let's keep
  * it for the backward compatibility. On the next major NestJS release `*` we
  * can replace it with `/{*splat}`, and drop the support for NestJS@9 and below.
  */
+const DEFAULT_ROUTES = [{ path: '*', method: RequestMethod.ALL }];
+
+declare module 'http' {
+  interface IncomingMessage {
+    cls: ClsService; // 使用更具体的 ClsService 类型
+  }
+}
 
 @Global()
 @Module({ providers: [Logger], exports: [Logger] })
-export class LoggerModule {
-  static async forRootAsync(params?: Params): Promise<DynamicModule> {
-    /**
-     * 首先Params是一个接口
-     * 其次Provider是一个类型，是NestJS的Provider类型
-     *
-     * 这里Provider<Params> 通过泛型指定这个提供者的形态应当符合Params接口约束
-     * 通过这样的方式指定paramsProvider为
-     * {
-     *  provide: PARAMS_PROVIDER_TOKEN,
-     *  useValue: params || {},
-     * }
-     * 其作用是接收使用者传入参数
-     * 而使用者传入的参数需要符合Params & Partial<LoggerConfig>约束
-     *
-     * 可见，定义这个forRoot函数时，我们并没有具体确定值，
-     * 而是通过Provider<LoggerParams> 通过泛型指定这个提供者的形态应当符合LoggerParams接口约束
-     * 而使用者传入的参数需要符合LoggerParams & Partial<LoggerConfig>约束
-     * 这样，就实现了参数的传递和约束
-     */
-    const paramsProvider: Provider<Params> = {
+export class LoggerModule implements NestModule {
+  static forRoot(params?: LoggerParams | undefined): DynamicModule {
+    const paramsProvider: Provider<LoggerParams> = {
       provide: PARAMS_PROVIDER_TOKEN,
-      useValue: params || {
-        sensitiveHeaders: [],
-        sensitiveFields: [],
-        logRequestBody: false,
-        logResponseBody: false,
-      },
+      useValue: params || {},
     };
 
     const decorated = createProvidersForDecorated();
 
     return {
       module: LoggerModule,
-      imports: [
-        ClsModule.forRoot({
-          global: true,
-          middleware: {
-            mount: true,
-            setup: (cls, req) => {
-              cls.set('requestId', req.id);
-              cls.set('traceId', req.headers['x-trace-id'] || req.id);
-            },
-          },
-        }) as any,
-      ],
+      imports: [ClsModule.forRoot()],
       providers: [Logger, ...decorated, PinoLogger, paramsProvider],
       exports: [Logger, ...decorated, PinoLogger, paramsProvider],
-      global: true,
     };
   }
 
-  constructor(@Inject(PARAMS_PROVIDER_TOKEN) private readonly params: Params) {}
+  static forRootAsync(params: LoggerModuleAsyncParams): DynamicModule {
+    const paramsProvider: Provider<LoggerParams | Promise<LoggerParams>> = {
+      provide: PARAMS_PROVIDER_TOKEN,
+      useFactory: params.useFactory,
+      inject: params.inject,
+    };
+
+    const decorated = createProvidersForDecorated();
+
+    const providers: any[] = [
+      Logger,
+      ...decorated,
+      PinoLogger,
+      paramsProvider,
+      ...(params.providers || []),
+    ];
+
+    return {
+      module: LoggerModule,
+      imports: [ClsModule.forRoot(), ...(params.imports || [])],
+      providers,
+      exports: [Logger, ...decorated, PinoLogger, paramsProvider],
+    };
+  }
+
+  constructor(
+    @Inject(PARAMS_PROVIDER_TOKEN) private readonly params: LoggerParams
+  ) {}
+
+  configure(consumer: MiddlewareConsumer) {
+    const {
+      exclude,
+      forRoutes = DEFAULT_ROUTES,
+      pinoHttp,
+      useExisting,
+      assignResponse,
+    } = this.params;
+
+    const middlewares = createLoggerMiddlewares(
+      pinoHttp || {},
+      useExisting,
+      assignResponse
+    );
+
+    if (exclude) {
+      consumer
+        .apply(...middlewares)
+        .exclude(...exclude)
+        .forRoutes(...forRoutes);
+    } else {
+      consumer.apply(...middlewares).forRoutes(...forRoutes);
+    }
+  }
+}
+
+function createLoggerMiddlewares(
+  params: NonNullable<LoggerParams['pinoHttp']>,
+  useExisting = false,
+  assignResponse = false
+) {
+  if (useExisting) {
+    return [bindLoggerMiddlewareFactory(useExisting, assignResponse)];
+  }
+
+  const middleware = pinoHttp(
+    ...(Array.isArray(params) ? params : [params as any])
+  );
+
+  // @ts-expect-error: root is readonly field, but this is the place where
+  // it's set actually
+  PinoLogger.root = middleware.logger;
+
+  // FIXME: params type here is pinoHttp.Options | pino.DestinationStream
+  // pinoHttp has two overloads, each of them takes those types
+  return [middleware, bindLoggerMiddlewareFactory(useExisting, assignResponse)];
+}
+
+function bindLoggerMiddlewareFactory(
+  useExisting: boolean,
+  assignResponse: boolean
+) {
+  return function bindLoggerMiddleware(
+    req: IncomingMessage,
+    res: ServerResponse,
+    next: () => void
+  ) {
+    let log = req.log;
+    let resLog = assignResponse ? res.log : undefined;
+
+    if (!useExisting && req.allLogs) {
+      log = req.allLogs[req.allLogs.length - 1]!;
+    }
+    if (assignResponse && !useExisting && res.allLogs) {
+      resLog = res.allLogs[res.allLogs.length - 1]!;
+    }
+
+    const cls = req.cls;
+    cls.run(() => {
+      cls.set('log', log);
+      if (assignResponse) {
+        cls.set('resLog', resLog);
+      }
+      next();
+    });
+  };
 }

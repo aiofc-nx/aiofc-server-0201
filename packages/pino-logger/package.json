@@ -3,9 +3,11 @@
   "version": "0.0.1",
   "dependencies": {
     "tslib": "^2.3.0",
-    "@nestjs/common": "10.2.7",
     "rxjs": "^7.8.0",
-    "pino": "^9.5.0"
+    "pino": "^9.5.0",
+    "pino-http": "^10.4.0",
+    "@nestjs/common": "10.2.7",
+    "nestjs-cls": "4.5.0"
   },
   "type": "commonjs",
   "main": "./src/index.js",

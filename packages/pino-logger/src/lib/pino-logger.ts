@@ -1,19 +1,14 @@
 import { Injectable, Inject, Scope } from '@nestjs/common';
 import pino from 'pino';
 import { ClsService } from 'nestjs-cls';
-
-import {
-  isPassedLogger,
-  Params,
-  PARAMS_PROVIDER_TOKEN,
-} from './interface/params';
-
+import { isPassedLogger, LoggerParams } from './interface/params.interface';
+import { PARAMS_PROVIDER_TOKEN } from './constants';
 /**
  * 从pino.Logger中选取的日志记录方法类型
  */
 type PinoMethods = Pick<
   pino.Logger,
-  'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal'
+  'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal' | 'child'
 >;
 
 /**
@@ -118,8 +113,8 @@ export class PinoLogger implements PinoMethods {
    * - 其他情况下直接传入pino构造函数
    */
   constructor(
-    @Inject(PARAMS_PROVIDER_TOKEN) { pinoHttp, renameContext }: Params,
-    private readonly cls: ClsService,
+    @Inject(PARAMS_PROVIDER_TOKEN) { pinoHttp, renameContext }: LoggerParams,
+    private readonly cls: ClsService
   ) {
     // 如果pinoHttp是对象且包含customAttributeKeys属性，则使用其作为错误键
     if (
@@ -229,7 +224,7 @@ export class PinoLogger implements PinoMethods {
     const logger = this.cls.get('logger');
     if (!logger) {
       throw new Error(
-        `${PinoLogger.name}: unable to assign extra fields out of request scope`,
+        `${PinoLogger.name}: unable to assign extra fields out of request scope`
       );
     }
     this.cls.set('logger', logger.child(fields));
@@ -259,7 +254,7 @@ export class PinoLogger implements PinoMethods {
           args = [
             Object.assign(
               { [this.contextName]: this.context },
-              { [this.errorKey]: firstArg },
+              { [this.errorKey]: firstArg }
             ),
             ...args.slice(1),
           ];
@@ -277,6 +272,13 @@ export class PinoLogger implements PinoMethods {
     // @ts-ignore args are union of tuple types
     this.logger[method](...args);
   }
+
+  child<ChildCustomLevels extends string = never>(
+    bindings: pino.Bindings,
+    options?: pino.ChildLoggerOptions<ChildCustomLevels>
+  ): pino.Logger<ChildCustomLevels> {
+    return this.logger.child(bindings, options);
+  }
 }
 
 /**
@@ -286,7 +288,7 @@ export class PinoLogger implements PinoMethods {
  * @returns 如果第一个参数是对象则返回true
  */
 function isFirstArgObject(
-  args: Parameters<LoggerFn>,
+  args: Parameters<LoggerFn>
 ): args is [obj: object, msg?: string, ...args: any[]] {
   return typeof args[0] === 'object';
 }

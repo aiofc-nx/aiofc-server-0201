@@ -30,6 +30,8 @@ module.exports = [
     // Override or add rules here
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-floating-promises': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
       '@typescript-eslint/no-require-imports': 'off',
       '@typescript-eslint/no-empty-function': 'off',
       '@typescript-eslint/no-unsafe-function-type': 'off',

@@ -21,6 +21,7 @@
     "ms-azuretools.vscode-docker",
     "jmkrivocapich.drawfolderstructure",
     "brunnerh.insert-unicode",
-    "pflannery.vscode-versionlens"
+    "pflannery.vscode-versionlens",
+    "bierner.markdown-checkbox"
   ]
 }
